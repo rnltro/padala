@@ -1,3 +1,5 @@
+# Download "padala-near-hackathon.zip"
+
 # Padala — Cross-chain payroll on NEAR
 
 > Freelancers invoice in USD. Employers pay USDC from **any chain** through NEAR Intents. Freelancers receive **native USDC on NEAR** in seconds. An **autonomous agent** settles invoices on its own when route fees fit the budget, every payment moves through a **policy-gated agent wallet**, failed swaps refund to **MPC-derived per-invoice addresses** (Chain Signatures), and every decision lands in an append-only audit trail.
@@ -97,13 +99,6 @@ curl -X POST http://localhost:3000/api/payroll-runs \
 
 `GET /api/invoices/export` (or the **Export CSV** button) → `padala-invoices-YYYY-MM-DD.csv`. One row per invoice: reference, client, status, created/due/settled dates, settled amount, route fee bps, deposit address, refund path, payroll run. UTF-8 BOM + CRLF so it opens clean in Excel. Every export writes a `CSV_EXPORTED` audit event — even an empty ledger leaves a trace.
 
-## Screenshots
-
-| Dashboard — policy-gated agent treasury | Client payment link (no login) | Real 1Click deposit + QR |
-| --- | --- | --- |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Payment link](docs/screenshots/payment-page.png) | ![Deposit address + QR](docs/screenshots/payment-deposit-qr.png) |
-
-The client link (`/pay/INV-1002`) is fully public: live 1Click quote, scannable deposit QR, self-updating status timeline — no wallet connect, no login.
 
 ## Architecture
 
@@ -244,57 +239,6 @@ For hosted demos: `POST /api/demo/reset` restores the pristine seed remotely (se
 > **Smoke fails at "refund address derived" / "pay" on your machine?** The app is fine — that machine can't reach NEAR RPC and/or the 1Click API (firewall, VPN, antivirus, captive portal). Open `/api/health`: the `network` section names the unreachable API with a fix. Refund derivation can also run fully offline by pinning `MPC_PUBLIC_KEY=secp256k1:3tFR…` in `.env` (the **mainnet root key** — `MAINNET_ROOT_NAJ` in `scripts/verify-derivation.ts`, verified live against `v1.signer`); live quotes always need network.
 
 Optional sanity check (offline, pinned test vector): `bun scripts/verify-derivation.ts`
-
-## Host it for judges
-
-Want judges to click the app instead of cloning it? The repo ships a production Dockerfile plus `fly.toml` / `render.yaml` — one command deploys with a persistent SQLite volume and a `/api/health` health check:
-
-```bash
-fly launch --copy-config --no-deploy
-fly volumes create padala_db 1 --region sin
-fly secrets set CRON_SECRET=$(openssl rand -hex 24)   # gates /api/cron/settle + /api/demo/reset
-fly deploy
-```
-
-Full walkthrough (Railway/Render/VPS, external Autopilot cron, judge preflight): **[HOSTING.md](HOSTING.md)**.
-
-## 10-day build plan (Nov 4 → Nov 14 deadline)
-
-| Day | Goal | Done when |
-| --- | --- | --- |
-| **4** | ✅ Scaffold: dashboard, invoices, policy engine, live 1Click quotes, audit trail, simulate button + **client payment links, impact analytics** | Shipped day 1 |
-| **5** | Real settlement path E2E: send a small real deposit (e.g. 10 USDC on Base) → watch status flip PENDING → SUCCESS → invoice PAID | One real on-chain settlement on video |
-| **6** | ✅ **Chain Signatures refunds** (MPC epsilon derivation, live-verified) + ✅ **Autopilot** autonomous settlement loop | Both shipped early — see features above |
-| **7** | **Shade Agent** (NearDeFi/shade-agent-template, Phala Cloud): move the policy engine inside the TEE; quote + sign requests attestable | Policy runs in TEE; attestation quoted in audit |
-| **8** | ✅ Recurring payroll runs: batch invoices, per-line validation, policy pre-flight, summary audit event | Shipped — UI + API verified, smoke-tested |
-| **9** | ✅ Design pass: payment-link page for the client (no login) — a stranger can pay an invoice unaided | Shipped |
-| **10** | ✅ Analytics: average settle time, cost vs. wire, volume for the demo video | Numbers on the landing panel |
-| **11** | ✅ README + demo video, plus submission hardening: `bun run setup` bootstrap, batch payroll + CSV export E2E, 30 unit tests, 21-step smoke, demo-reset endpoint, cold-clone simulation | This README; video attached to the X post |
-| **12–13** | Buffer: testnet dry-run, fix flakiness, tighten copy, prep the X post thread | Cold-start demo works first try |
-| **14** | Submit: repo + X post + 20–2,000 char description before **23:59 UTC** | Submitted early |
-
-## Submission checklist (from nearhackathon.com)
-
-- [ ] Working prototype in a **public repo** (AI judges auto-verify it runs)
-- [ ] Demo post on X that **mentions "NEAR HACKATHON"**, tags **@NEARProtocol**, uses **#NEARHackathon**, with demo video or screenshots
-- [ ] 20–2,000 character description of what was built (start with the problem, not the tech)
-- [ ] Submit both links before **Nov 14, 2026, 23:59 UTC**
-
-Suggested X copy (submission format — fits 280):
-
-> Just submitted Padala for the 2026 #NEARHackathon! 🚀
-> I built a cross-chain payroll agent — freelancers get paid in native USDC on NEAR in ~40s, not 3–5 days. Any chain in, policy-gated out.
-> Entering the Real-World Money track. Watch the live demo below! 👇
-> @NEARProtocol
-
-Attach the demo video below the post. Longer quote-post alternative:
-
-> Freelancers shouldn't wait 3–5 days and $50 in wires to get paid.
->
-> Padala: invoice in USD → client pays USDC from Base/ETH/Solana → freelancer gets native USDC on NEAR in ~30s. Every payment passes a policy-gated agent wallet — per-tx limits, daily caps, allowlists — with an append-only audit trail.
->
-> Built for NEAR HACKATHON @NEARProtocol #NEARHackathon
-> Real 1Click quotes, real deposit addresses, real status polling. 🧵👇
 
 ## Production roadmap
 
